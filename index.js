@@ -1,31 +1,45 @@
+const express = require('express');
 const WebSocket = require('ws');
 
-const app_id = '34A2FBJ96ftdZ3NlbpMAC'; 
+const app = express();
+// Render automatically provides the PORT environment variable
+const PORT = process.env.PORT || 3000; 
+
+const app_id = '34A2FBJ96ftdZ3NlbpMAC'; // You can change this back to your App ID once it connects
 const api_token = 'pat_04f42f3ef352e734ab0366a1cb4818dfceced7811c7886c68506ac3912a3ed31'; 
 
-// An array of Deriv's official backup API clusters
 const derivServers = [
     'ws.binaryws.com',
     'ws.derivws.com',
-    'frontend.binaryws.com',
-    'blue.binaryws.com'
+    'frontend.binaryws.com'
 ];
-
 let currentServerIndex = 0;
 
+// 1. Start the web server (This stops Render from killing the app)
+app.get('/', (req, res) => {
+    res.send('AI Trading Bot Execution Gateway is Live!');
+});
+
+app.listen(PORT, () => {
+    console.log(`✅ Express Web Server listening on port ${PORT}`);
+    // 2. Only attempt to connect to Deriv AFTER the server is successfully running
+    connectToDeriv();
+});
+
+// 3. The WebSocket Connection Logic
 function connectToDeriv() {
     const serverURL = derivServers[currentServerIndex];
-    console.log(`\nAttempting to connect to Deriv via: ${serverURL}...`);
+    console.log(`Attempting to connect to Deriv via: ${serverURL}...`);
 
     const ws = new WebSocket(`wss://${serverURL}/websockets/v3?app_id=${app_id}`, {
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Origin': 'https://app.deriv.com' // 🚨 CRITICAL: This fixes the 520 Cloudflare Error
         }
     });
 
     ws.on('open', () => {
-        console.log(`✅ Successfully connected to ${serverURL}!`);
-        console.log('Sending login token...');
+        console.log(`✅ Connected to ${serverURL}! Sending login token...`);
         ws.send(JSON.stringify({ authorize: api_token }));
     });
 
@@ -41,22 +55,18 @@ function connectToDeriv() {
     });
 
     ws.on('error', (err) => {
-        console.error(`❌ Connection failed on ${serverURL}: ${err.message}`);
-        
-        // If it fails (like a 520 error), automatically try the next server
+        console.error(`❌ Connection failed: ${err.message}`);
         currentServerIndex++;
+        
         if (currentServerIndex < derivServers.length) {
             console.log('Switching to backup server in 2 seconds...');
-            setTimeout(connectToDeriv, 2000); // Wait 2 seconds, then try again
+            setTimeout(connectToDeriv, 2000);
         } else {
-            console.error('🚨 ALL Deriv servers are currently rejecting connections. The Deriv API may be temporarily down.');
+            console.error('🚨 All servers rejected connection.');
         }
     });
 
     ws.on('close', () => {
-        console.log('Connection closed.');
+        console.log('Connection closed by server.');
     });
 }
-
-// Start the connection process
-connectToDeriv();
