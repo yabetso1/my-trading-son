@@ -5,17 +5,20 @@ const app = express();
 // Render automatically provides the PORT environment variable
 const PORT = process.env.PORT || 3000; 
 
-const app_id = '34A2FBJ96ftdZ3NlbpMAC'; // You can change this back to your App ID once it connects
+// ⚠️ Replace this with your actual Deriv API Token!
+// You can also change the app_id back to your personal one if you want.
+const app_id = '34A2FBJ96ftdZ3NlbpMAC'; 
 const api_token = 'pat_04f42f3ef352e734ab0366a1cb4818dfceced7811c7886c68506ac3912a3ed31'; 
 
+// Deriv's primary and backup server clusters
 const derivServers = [
-    'ws.binaryws.com',
     'ws.derivws.com',
+    'ws.binaryws.com',
     'frontend.binaryws.com'
 ];
 let currentServerIndex = 0;
 
-// 1. Start the web server (This stops Render from killing the app)
+// 1. Start the web server (Keeps Render from crashing the app)
 app.get('/', (req, res) => {
     res.send('AI Trading Bot Execution Gateway is Live!');
 });
@@ -26,17 +29,13 @@ app.listen(PORT, () => {
     connectToDeriv();
 });
 
-// 3. The WebSocket Connection Logic
+// 3. The Clean WebSocket Connection Logic
 function connectToDeriv() {
     const serverURL = derivServers[currentServerIndex];
-    console.log(`Attempting to connect to Deriv via: ${serverURL}...`);
+    console.log(`\nAttempting clean server-to-server connection via: ${serverURL}...`);
 
-    const ws = new WebSocket(`wss://${serverURL}/websockets/v3?app_id=${app_id}`, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Origin': 'https://app.deriv.com' // 🚨 CRITICAL: This fixes the 520 Cloudflare Error
-        }
-    });
+    // NO HEADERS. We are proudly connecting as a backend server.
+    const ws = new WebSocket(`wss://${serverURL}/websockets/v3?app_id=${app_id}`);
 
     ws.on('open', () => {
         console.log(`✅ Connected to ${serverURL}! Sending login token...`);
@@ -55,14 +54,16 @@ function connectToDeriv() {
     });
 
     ws.on('error', (err) => {
-        console.error(`❌ Connection failed: ${err.message}`);
+        console.error(`❌ Connection failed on ${serverURL}: ${err.message}`);
         currentServerIndex++;
         
         if (currentServerIndex < derivServers.length) {
             console.log('Switching to backup server in 2 seconds...');
             setTimeout(connectToDeriv, 2000);
         } else {
-            console.error('🚨 All servers rejected connection.');
+            console.error('🚨 All servers rejected connection. The API may be temporarily down.');
+            // Reset to try the primary server again later if needed
+            currentServerIndex = 0; 
         }
     });
 
