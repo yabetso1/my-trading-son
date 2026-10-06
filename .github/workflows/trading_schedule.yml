@@ -23,8 +23,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Corrected package name to pandas-ta
-          pip install yfinance pandas pandas-ta xgboost scikit-learn requests
+          # Corrected package name to pandas_ta
+          pip install yfinance pandas pandas_ta xgboost scikit-learn requests
 
       - name: Run AI Inference & Execute Trade
         env:
