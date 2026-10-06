@@ -1,13 +1,18 @@
+
+
 const express = require('express');
 const { CTraderConnection } = require('@reiryoku/ctrader-layer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ⚠️️ Replace these with the credentials from your ACTIVE 'yabgoldbot' application
+// ⚠ Replace these with your ACTIVE 'yabgoldbot' credentials
 const clientId = '37330_gz9zL2bJLnWHZWBUsRkwgCLHGFhYvkt8B90keFDTf4FI7Jo7vB';
 const clientSecret = 'zQQMixb51YnRQhcxXCBRRrZcfXaVT9J4baOLvSka6fAHlF6lif';
 const accessToken = 'z14TM0PJWdkEF29DcGC80QJjyd1WixL2-WdyOzr7By0';
+
+// 🚨 TYPE YOUR 7-DIGIT DEMO ACCOUNT NUMBER HERE (No quotes!)
+const accountId = 10103694; 
 
 app.get('/', (req, res) => {
     res.send('cTrader AI Gateway is Live!');
@@ -21,7 +26,6 @@ app.listen(PORT, async () => {
 async function startTradingBot() {
     console.log('\nConnecting to cTrader Demo API...');
     
-    // Connect to the cTrader Demo Server
     const connection = new CTraderConnection({
         host: 'demo.ctraderapi.com',
         port: 5035,
@@ -31,23 +35,19 @@ async function startTradingBot() {
         await connection.open();
         console.log('✅ TCP Connection established!');
 
-        // 1. Authenticate the App itself
+        // 1. Authenticate the App
         await connection.sendCommand('ProtoOAApplicationAuthReq', {
             clientId: clientId,
             clientSecret: clientSecret,
         });
         console.log('✅ Application Authenticated!');
 
-        // 2. Authorize the specific Trading Account using the token
-        // First, we need to get the Account ID tied to the token
-        const accountRes = await CTraderConnection.getAccessTokenAccounts(accessToken, 'demo.ctraderapi.com');
-        const ctidTraderAccountId = accountRes[0].ctidTraderAccountId;
-
+        // 2. Authorize the Trading Account directly (Bypassing the buggy library function)
         await connection.sendCommand('ProtoOAAccountAuthReq', {
-            ctidTraderAccountId,
-            accessToken,
+            ctidTraderAccountId: accountId,
+            accessToken: accessToken,
         });
-        console.log(`✅ Trading Account [${ctidTraderAccountId}] Authorized!`);
+        console.log(`✅ Trading Account [${accountId}] Authorized!`);
 
         // 3. Keep the connection alive 
         setInterval(() => {
