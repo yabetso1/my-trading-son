@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const { CTraderConnection } = require('@reiryoku/ctrader-layer');
 
@@ -10,17 +8,6 @@ const PORT = process.env.PORT || 3000;
 const clientId = '37330_gz9zL2bJLnWHZWBUsRkwgCLHGFhYvkt8B90keFDTf4FI7Jo7vB';
 const clientSecret = 'zQQMixb51YnRQhcxXCBRRrZcfXaVT9J4baOLvSka6fAHlF6lif';
 const accessToken = 'Atx62QmpoEhZ5FoUO7E7rxFxGK2zsjqGRIrxruARw2g';
-
-const express = require('express');
-const { CTraderConnection } = require('@reiryoku/ctrader-layer');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ⚠ Replace these with your ACTIVE 'yabgoldbot' credentials
-const clientId = '37330_gz9zL2bJLnWHZWBUsRkwgCLHGFhYvkt8B90keFDTf4FI7Jo7vB';
-const clientSecret = 'YOUR_CLIENT_SECRET';
-const accessToken = 'YOUR_ACCESS_TOKEN';
 
 app.get('/', (req, res) => {
     res.send('cTrader AI Gateway is Live!');
