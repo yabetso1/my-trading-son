@@ -4,7 +4,10 @@ const { CTraderConnection } = require('@reiryoku/ctrader-layer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ⚠ Replace these with your ACTIVE 'yabgoldbot' credentials
+// 🚨 CRITICAL: This allows our server to read JSON messages sent by the AI
+app.use(express.json());
+
+// ⚠ Keep your active credentials here
 const clientId = '37330_gz9zL2bJLnWHZWBUsRkwgCLHGFhYvkt8B90keFDTf4FI7Jo7vB';
 const clientSecret = 'zQQMixb51YnRQhcxXCBRRrZcfXaVT9J4baOLvSka6fAHlF6lif';
 const accessToken = 'Atx62QmpoEhZ5FoUO7E7rxFxGK2zsjqGRIrxruARw2g';
@@ -30,30 +33,56 @@ async function startTradingBot() {
         await connection.open();
         console.log('✅ TCP Connection established!');
 
-        // 1. Authenticate the App
         await connection.sendCommand('ProtoOAApplicationAuthReq', {
             clientId: clientId,
             clientSecret: clientSecret,
         });
-        console.log('✅ Application Authenticated!');
 
-        // 2. Ask the TCP server for your hidden internal cTID Account ID
         const accountListRes = await connection.sendCommand('ProtoOAGetAccountListByAccessTokenReq', {
             accessToken: accessToken
         });
         
-        // Extract the hidden ID from the server's response
         const internalAccountId = accountListRes.ctidTraderAccount[0].ctidTraderAccountId;
-        console.log(`✅ Discovered internal cTID Account ID: ${internalAccountId}`);
 
-        // 3. Authorize the Trading Account using the correct internal ID
         await connection.sendCommand('ProtoOAAccountAuthReq', {
             ctidTraderAccountId: internalAccountId,
             accessToken: accessToken,
         });
         console.log(`✅ Trading Account Authorized Successfully!`);
 
-        // 4. Keep the connection alive 
+        // 1. Automatically find the ID for Gold (XAUUSD) on this specific broker
+        const symbolsRes = await connection.sendCommand('ProtoOASymbolsListReq', {
+            ctidTraderAccountId: internalAccountId,
+        });
+        const goldSymbol = symbolsRes.symbol.find(s => s.symbolName === 'XAUUSD' || s.symbolName === 'XAU/USD');
+        const goldSymbolId = goldSymbol ? goldSymbol.symbolId : null;
+        
+        console.log(`✅ Gold (XAUUSD) Symbol ID found: ${goldSymbolId}`);
+        console.log(`📡 Webhook Listener Active. Waiting for AI signals...`);
+
+        // 2. The Webhook Receiver for the AI
+        app.post('/webhook', async (req, res) => {
+            const { action, volume } = req.body; 
+            console.log(`\n🚨 AI SIGNAL RECEIVED: ${action} ${volume} units of Gold`);
+
+            try {
+                // 3. Execute the market order
+                await connection.sendCommand('ProtoOANewOrderReq', {
+                    ctidTraderAccountId: internalAccountId,
+                    symbolId: goldSymbolId,
+                    orderType: 'MARKET',
+                    tradeSide: action, // 'BUY' or 'SELL'
+                    volume: volume, 
+                });
+                
+                console.log(`✅ Trade Executed on cTrader!`);
+                res.status(200).send({ success: true, message: "Trade Executed" });
+            } catch (error) {
+                console.error('❌ Execution Failed:', error);
+                res.status(500).send({ success: false, error: error });
+            }
+        });
+
         setInterval(() => {
             connection.sendHeartbeat();
         }, 25000);
