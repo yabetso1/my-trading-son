@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/yabetso1/my-trading-son#readme",
   "dependencies": {
+    "@reiryoku/ctrader-layer": "^2.2.0",
     "express": "^5.2.1",
     "ws": "^8.22.0"
   }

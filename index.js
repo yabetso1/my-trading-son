@@ -1,58 +1,60 @@
 const express = require('express');
-const WebSocket = require('ws');
+const { CTraderConnection } = require('@reiryoku/ctrader-layer');
 
 const app = express();
-const PORT = process.env.PORT || 3000; 
+const PORT = process.env.PORT || 3000;
 
-// 🚨 CRITICAL: You MUST use your personal App ID (the numbers you generated).
-// Cloudflare aggressively blocks the public '1089' ID from cloud servers.
-const app_id = '34A2FBJ96ftdZ3NlbpMAC'; 
-const api_token = 'pat_04f42f3ef352e734ab0366a1cb4818dfceced7811c7886c68506ac3912a3ed31'; 
+// ⚠️️ Replace these with the credentials from your ACTIVE 'yabgoldbot' application
+const clientId = '37330_gz9zL2bJLnWHZWBUsRkwgCLHGFhYvkt8B90keFDTf4FI7Jo7vB';
+const clientSecret = 'zQQMixb51YnRQhcxXCBRRrZcfXaVT9J4baOLvSka6fAHlF6lif';
+const accessToken = 'z14TM0PJWdkEF29DcGC80QJjyd1WixL2-WdyOzr7By0';
 
 app.get('/', (req, res) => {
-    res.send('AI Trading Bot Execution Gateway is Live!');
+    res.send('cTrader AI Gateway is Live!');
 });
 
-app.listen(PORT, () => {
-    console.log(`✅ Express Web Server listening on port ${PORT}`);
-    connectToDeriv();
+app.listen(PORT, async () => {
+    console.log(`✅ Web Server listening on port ${PORT}`);
+    await startTradingBot();
 });
 
-function connectToDeriv() {
-    // We add the exact language and brand parameters Deriv's internal systems expect
-    const url = `wss://ws.derivws.com/websockets/v3?app_id=${app_id}&l=EN&brand=deriv`;
-    console.log(`\nConnecting to Deriv API...`);
-
-    const ws = new WebSocket(url, {
-        headers: {
-            // Tell Cloudflare exactly what we are: a Node API client, not a fake browser.
-            'User-Agent': 'Deriv-NodeJS-API-Client',
-            // Deriv's backend expects this origin for API developer connections.
-            'Origin': 'https://developers.deriv.com'
-        }
+async function startTradingBot() {
+    console.log('\nConnecting to cTrader Demo API...');
+    
+    // Connect to the cTrader Demo Server
+    const connection = new CTraderConnection({
+        host: 'demo.ctraderapi.com',
+        port: 5035,
     });
 
-    ws.on('open', () => {
-        console.log(`✅ Connected successfully! Sending login token...`);
-        ws.send(JSON.stringify({ authorize: api_token }));
-    });
+    try {
+        await connection.open();
+        console.log('✅ TCP Connection established!');
 
-    ws.on('message', (data) => {
-        const response = JSON.parse(data);
-        
-        if (response.error) {
-            console.error('❌ API Error:', response.error.message);
-        } else if (response.msg_type === 'authorize') {
-            console.log('✅ Login Successful!');
-            console.log(`💰 Demo Balance: ${response.authorize.balance} ${response.authorize.currency}`);
-        }
-    });
+        // 1. Authenticate the App itself
+        await connection.sendCommand('ProtoOAApplicationAuthReq', {
+            clientId: clientId,
+            clientSecret: clientSecret,
+        });
+        console.log('✅ Application Authenticated!');
 
-    ws.on('error', (err) => {
-        console.error(`❌ Connection failed: ${err.message}`);
-    });
+        // 2. Authorize the specific Trading Account using the token
+        // First, we need to get the Account ID tied to the token
+        const accountRes = await CTraderConnection.getAccessTokenAccounts(accessToken, 'demo.ctraderapi.com');
+        const ctidTraderAccountId = accountRes[0].ctidTraderAccountId;
 
-    ws.on('close', () => {
-        console.log('Connection closed by server.');
-    });
+        await connection.sendCommand('ProtoOAAccountAuthReq', {
+            ctidTraderAccountId,
+            accessToken,
+        });
+        console.log(`✅ Trading Account [${ctidTraderAccountId}] Authorized!`);
+
+        // 3. Keep the connection alive 
+        setInterval(() => {
+            connection.sendHeartbeat();
+        }, 25000);
+
+    } catch (error) {
+        console.error('❌ cTrader Connection Error:', error);
+    }
 }
