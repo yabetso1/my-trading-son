@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 // ⚠ Replace these with your ACTIVE 'yabgoldbot' credentials
 const clientId = '37330_gz9zL2bJLnWHZWBUsRkwgCLHGFhYvkt8B90keFDTf4FI7Jo7vB';
 const clientSecret = 'zQQMixb51YnRQhcxXCBRRrZcfXaVT9J4baOLvSka6fAHlF6lif';
-const accessToken = 'z14TM0PJWdkEF29DcGC80QJjyd1WixL2-WdyOzr7By0';
+const accessToken = 'Atx62QmpoEhZ5FoUO7E7rxFxGK2zsjqGRIrxruARw2g';
 
 // 🚨 TYPE YOUR 7-DIGIT DEMO ACCOUNT NUMBER HERE (No quotes!)
 const accountId = 10103694; 
