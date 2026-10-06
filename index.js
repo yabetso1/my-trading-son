@@ -11,8 +11,16 @@ const clientId = '37330_gz9zL2bJLnWHZWBUsRkwgCLHGFhYvkt8B90keFDTf4FI7Jo7vB';
 const clientSecret = 'zQQMixb51YnRQhcxXCBRRrZcfXaVT9J4baOLvSka6fAHlF6lif';
 const accessToken = 'Atx62QmpoEhZ5FoUO7E7rxFxGK2zsjqGRIrxruARw2g';
 
-// 🚨 TYPE YOUR 7-DIGIT DEMO ACCOUNT NUMBER HERE (No quotes!)
-const accountId = 10103694; 
+const express = require('express');
+const { CTraderConnection } = require('@reiryoku/ctrader-layer');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// ⚠ Replace these with your ACTIVE 'yabgoldbot' credentials
+const clientId = '37330_gz9zL2bJLnWHZWBUsRkwgCLHGFhYvkt8B90keFDTf4FI7Jo7vB';
+const clientSecret = 'YOUR_CLIENT_SECRET';
+const accessToken = 'YOUR_ACCESS_TOKEN';
 
 app.get('/', (req, res) => {
     res.send('cTrader AI Gateway is Live!');
@@ -42,14 +50,23 @@ async function startTradingBot() {
         });
         console.log('✅ Application Authenticated!');
 
-        // 2. Authorize the Trading Account directly (Bypassing the buggy library function)
+        // 2. Ask the TCP server for your hidden internal cTID Account ID
+        const accountListRes = await connection.sendCommand('ProtoOAGetAccountListByAccessTokenReq', {
+            accessToken: accessToken
+        });
+        
+        // Extract the hidden ID from the server's response
+        const internalAccountId = accountListRes.ctidTraderAccount[0].ctidTraderAccountId;
+        console.log(`✅ Discovered internal cTID Account ID: ${internalAccountId}`);
+
+        // 3. Authorize the Trading Account using the correct internal ID
         await connection.sendCommand('ProtoOAAccountAuthReq', {
-            ctidTraderAccountId: accountId,
+            ctidTraderAccountId: internalAccountId,
             accessToken: accessToken,
         });
-        console.log(`✅ Trading Account [${accountId}] Authorized!`);
+        console.log(`✅ Trading Account Authorized Successfully!`);
 
-        // 3. Keep the connection alive 
+        // 4. Keep the connection alive 
         setInterval(() => {
             connection.sendHeartbeat();
         }, 25000);
