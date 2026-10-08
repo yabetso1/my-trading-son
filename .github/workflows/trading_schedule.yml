@@ -30,6 +30,6 @@ jobs:
 
       - name: Run AI Inference & Execute Trade
         env:
-          WEBHOOK_URL: "https://dash-for-bot.onrender.com/webhook"
+          WEBHOOK_URL: "https://my-trading-son.onrender.com/webhook"
         run: |
           python ai_brain.py
