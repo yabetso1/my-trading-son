@@ -5,19 +5,22 @@ import pandas as pd
 import pandas_ta as ta
 import yfinance as yf
 import xgboost as xgb
-from sklearn.metrics import accuracy_score
 
-# Uses the environment variable if set, otherwise falls back to your Render webhook
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "https://my-trading-son.onrender.com/webhook")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "https://dash-for-bot.onrender.com/webhook")
+
+# SET YOUR LOT SIZE HERE (100 = 0.01 Lots, 200 = 0.02 Lots, 500 = 0.05 Lots)
+TRADE_VOLUME = 200 
 
 def run_pipeline():
-    print("Fetching historical Gold data...")
-    df = yf.download("GC=F", interval="1h", period="1y", auto_adjust=True)
+    # 1. Fetch 30-Minute Historical Data 
+    # (Yahoo Finance limits intraday data to 60 days max)
+    print("Fetching historical 30m Gold data...")
+    df = yf.download("GC=F", interval="30m", period="60d", auto_adjust=True)
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.droplevel(1)
     df = df.astype(float)
 
-    # 1. Feature Engineering
+    # 2. Feature Engineering
     df['RSI'] = ta.rsi(df['Close'], length=14)
     df['EMA_20'] = ta.ema(df['Close'], length=20)
     df['EMA_50'] = ta.ema(df['Close'], length=50)
@@ -30,7 +33,7 @@ def run_pipeline():
     X = df[features]
     y = df['Target']
 
-    # 2. Train Model
+    # 3. Train Model
     split_idx = int(len(df) * 0.8)
     X_train = X.iloc[:split_idx]
     y_train = y.iloc[:split_idx]
@@ -39,9 +42,9 @@ def run_pipeline():
     model = xgb.XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.05, random_state=42)
     model.fit(X_train, y_train)
 
-    # 3. Pull Live State
+    # 4. Pull Live State (30-minute interval)
     print("Fetching live market candle...")
-    latest_data = yf.download("GC=F", interval="1h", period="5d", auto_adjust=True)
+    latest_data = yf.download("GC=F", interval="30m", period="5d", auto_adjust=True)
     if isinstance(latest_data.columns, pd.MultiIndex):
         latest_data.columns = latest_data.columns.droplevel(1)
     latest_data = latest_data.astype(float)
@@ -58,8 +61,8 @@ def run_pipeline():
     print(f"Generated AI Decision: {action}")
     print(f"Dispatching trade signal to: {WEBHOOK_URL}")
 
-    # 4. Dispatch Signal
-    response = requests.post(WEBHOOK_URL, json={"action": action, "volume": 100}, timeout=30)
+    # 5. Dispatch Signal to Render (Node.js handles the 10% SL math)
+    response = requests.post(WEBHOOK_URL, json={"action": action, "volume": TRADE_VOLUME}, timeout=30)
     print(f"Gateway Response [{response.status_code}]: {response.text}")
 
 if __name__ == "__main__":
