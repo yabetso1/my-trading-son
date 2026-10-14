@@ -6,7 +6,7 @@ import pandas_ta as ta
 import yfinance as yf
 import xgboost as xgb
 
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "https://dash-for-bot.onrender.com/webhook")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "https://my-trading-son.onrender.com/webhook")
 
 # SET YOUR LOT SIZE HERE (100 = 0.01 Lots, 200 = 0.02 Lots, 500 = 0.05 Lots)
 TRADE_VOLUME = 200 
