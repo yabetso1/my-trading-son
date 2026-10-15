@@ -6,7 +6,7 @@ import pandas_ta as ta
 import yfinance as yf
 import xgboost as xgb
 
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "https://my-trading-son.onrender.com/webhook")
+WEBHOOK_URL = "https://my-trading-son.onrender.com/webhook")
 TRADE_VOLUME = 200 
 
 def run_pipeline():
