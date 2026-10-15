@@ -7,20 +7,15 @@ import yfinance as yf
 import xgboost as xgb
 
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "https://my-trading-son.onrender.com/webhook")
-
-# SET YOUR LOT SIZE HERE (100 = 0.01 Lots, 200 = 0.02 Lots, 500 = 0.05 Lots)
 TRADE_VOLUME = 200 
 
 def run_pipeline():
-    # 1. Fetch 15-Minute Historical Data 
-    # (Yahoo Finance limits intraday data to 60 days max)
     print("Fetching historical 15m Gold data...")
     df = yf.download("GC=F", interval="15m", period="60d", auto_adjust=True)
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.droplevel(1)
     df = df.astype(float)
 
-    # 2. Feature Engineering
     df['RSI'] = ta.rsi(df['Close'], length=14)
     df['EMA_20'] = ta.ema(df['Close'], length=20)
     df['EMA_50'] = ta.ema(df['Close'], length=50)
@@ -33,7 +28,6 @@ def run_pipeline():
     X = df[features]
     y = df['Target']
 
-    # 3. Train Model
     split_idx = int(len(df) * 0.8)
     X_train = X.iloc[:split_idx]
     y_train = y.iloc[:split_idx]
@@ -42,7 +36,6 @@ def run_pipeline():
     model = xgb.XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.05, random_state=42)
     model.fit(X_train, y_train)
 
-    # 4. Pull Live State (15-minute interval)
     print("Fetching live market candle...")
     latest_data = yf.download("GC=F", interval="15m", period="5d", auto_adjust=True)
     if isinstance(latest_data.columns, pd.MultiIndex):
@@ -55,14 +48,33 @@ def run_pipeline():
     latest_data['ATR'] = ta.atr(latest_data['High'], latest_data['Low'], latest_data['Close'], length=14)
 
     X_live = latest_data.iloc[-1:][features]
-    prediction = model.predict(X_live)[0]
-    action = "BUY" if prediction == 1 else "SELL"
+    
+    # 4. Generate Probabilities (Confidence) instead of binary 1/0
+    probabilities = model.predict_proba(X_live)[0]
+    prob_down = probabilities[0] 
+    prob_up = probabilities[1]   
+    
+    # 5. Apply the "HOLD" Threshold Logic (65% confidence required)
+    if prob_up >= 0.65:
+        action = "BUY"
+        confidence = prob_up
+    elif prob_down >= 0.65:
+        action = "SELL"
+        confidence = prob_down
+    else:
+        action = "HOLD"
+        confidence = max(prob_up, prob_down)
 
-    print(f"Generated AI Decision: {action}")
+    print(f"AI Prediction: {action} (Confidence: {confidence:.1%})")
+
+    if action == "HOLD":
+        print("Market is too unpredictable right now. Holding.")
+        return # Terminates script safely without sending a trade to Render
+
     print(f"Dispatching trade signal to: {WEBHOOK_URL}")
 
-    # 5. Dispatch Signal to Render (Node.js handles the 10% SL math)
-    response = requests.post(WEBHOOK_URL, json={"action": action, "volume": TRADE_VOLUME}, timeout=30)
+    # 6. Dispatch Signal
+    response = requests.post(WEBHOOK_URL, json={"action": action, "volume": TRADE_VOLUME}, timeout=120)
     print(f"Gateway Response [{response.status_code}]: {response.text}")
 
 if __name__ == "__main__":
