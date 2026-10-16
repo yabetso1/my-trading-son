@@ -54,11 +54,11 @@ def run_pipeline():
     prob_down = probabilities[0] 
     prob_up = probabilities[1]   
     
-    # 5. Apply the "HOLD" Threshold Logic (65% confidence required)
-    if prob_up >= 0.55:
+    # 5. Apply the "HOLD" Threshold Logic (52% confidence required)
+    if prob_up >= 0.52:
         action = "BUY"
         confidence = prob_up
-    elif prob_down >= 0.55:
+    elif prob_down >= 0.52:
         action = "SELL"
         confidence = prob_down
     else:
