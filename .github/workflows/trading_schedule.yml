@@ -2,7 +2,7 @@ name: 15 min Gold Trading Engine
 
 on:
   schedule:
-    - cron: '0,15 * * * *'
+    - cron: '15 * * * *'
   workflow_dispatch:
 
 jobs:
