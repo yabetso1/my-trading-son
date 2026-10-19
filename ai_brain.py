@@ -54,28 +54,29 @@ def run_pipeline():
     prob_down = probabilities[0] 
     prob_up = probabilities[1]   
     
-    # 5. Apply the "HOLD" Threshold Logic (52% confidence required)
-    if prob_up >= 0.52:
-        action = "BUY"
-        confidence = prob_up
-    elif prob_down >= 0.52:
-        action = "SELL"
-        confidence = prob_down
-    else:
-        action = "HOLD"
-        confidence = max(prob_up, prob_down)
+    # 5. Apply the Threshold Logic (52% confidence required)
+action = "HOLD"
+confidence = max(prob_up, prob_down)
 
-    print(f"AI Prediction: {action} (Confidence: {confidence:.1%})")
+if prob_up >= 0.52:
+    action = "BUY"
+    confidence = prob_up
+elif prob_down >= 0.52:
+    action = "SELL"
+    confidence = prob_down
 
-    if action == "HOLD":
-        print("Market is too unpredictable right now. Holding.")
-        return # Terminates script safely without sending a trade to Render
+print(f"AI Prediction: {action} (Confidence: {confidence:.1%})")
 
-    print(f"Dispatching trade signal to: {WEBHOOK_URL}")
+# 6. Send the Signal AND the Confidence to Render (Even on HOLD)
+payload = {
+    "action": action,
+    "volume": TRADE_VOLUME,
+    "confidence": round(confidence * 100, 2)  # Converts 0.523 to 52.3 for the dashboard
+}
 
-    # 6. Dispatch Signal
-    response = requests.post(WEBHOOK_URL, json={"action": action, "volume": TRADE_VOLUME}, timeout=120)
+try:
+    print(f"Dispatching state to: {WEBHOOK_URL}")
+    response = requests.post(WEBHOOK_URL, json=payload)
     print(f"Gateway Response [{response.status_code}]: {response.text}")
-
-if __name__ == "__main__":
-    run_pipeline()
+except Exception as e:
+    print(f"Failed to connect to gateway: {e}")
