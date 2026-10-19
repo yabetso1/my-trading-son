@@ -482,7 +482,8 @@ app.post('/webhook', async (req, res) => {
         const riskInDollars = balanceInDollars * RISK_PERCENTAGE;
 
         const priceDistance = riskInDollars / (volume / 100); 
-        const slPoints = Math.floor(priceDistance * 100); // Changed from 100000 to 100 for Gold
+        // Round to the exact cent, then multiply by 1000 for cTrader's 100,000ths scale
+        const slPoints = Math.round(priceDistance * 100) * 1000;
         const tpPoints = slPoints * 2;
 
         console.log(`💰 Live Balance: $${balanceInDollars.toFixed(2)} | Risking $${riskInDollars.toFixed(2)}`);
