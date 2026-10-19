@@ -55,28 +55,32 @@ def run_pipeline():
     prob_up = probabilities[1]   
     
     # 5. Apply the Threshold Logic (52% confidence required)
-action = "HOLD"
-confidence = max(prob_up, prob_down)
+    action = "HOLD"
+    confidence = max(prob_up, prob_down)
 
-if prob_up >= 0.52:
-    action = "BUY"
-    confidence = prob_up
-elif prob_down >= 0.52:
-    action = "SELL"
-    confidence = prob_down
+    if prob_up >= 0.52:
+        action = "BUY"
+        confidence = prob_up
+    elif prob_down >= 0.52:
+        action = "SELL"
+        confidence = prob_down
 
-print(f"AI Prediction: {action} (Confidence: {confidence:.1%})")
+    print(f"AI Prediction: {action} (Confidence: {confidence:.1%})")
 
-# 6. Send the Signal AND the Confidence to Render (Even on HOLD)
-payload = {
-    "action": action,
-    "volume": TRADE_VOLUME,
-    "confidence": round(confidence * 100, 2)  # Converts 0.523 to 52.3 for the dashboard
-}
+    # 6. Send the Signal AND the Confidence to Render (Even on HOLD)
+    payload = {
+        "action": action,
+        "volume": TRADE_VOLUME,
+        "confidence": round(confidence * 100, 2)  # Converts 0.523 to 52.3 for the dashboard
+    }
 
-try:
-    print(f"Dispatching state to: {WEBHOOK_URL}")
-    response = requests.post(WEBHOOK_URL, json=payload)
-    print(f"Gateway Response [{response.status_code}]: {response.text}")
-except Exception as e:
-    print(f"Failed to connect to gateway: {e}")
+    try:
+        print(f"Dispatching state to: {WEBHOOK_URL}")
+        response = requests.post(WEBHOOK_URL, json=payload)
+        print(f"Gateway Response [{response.status_code}]: {response.text}")
+    except Exception as e:
+        print(f"Failed to connect to gateway: {e}")
+
+# Trigger the AI pipeline
+if __name__ == "__main__":
+    run_pipeline()
