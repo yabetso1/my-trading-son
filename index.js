@@ -481,8 +481,9 @@ app.post('/webhook', async (req, res) => {
         const RISK_PERCENTAGE = 0.10; 
         const riskInDollars = balanceInDollars * RISK_PERCENTAGE;
 
-        const slPoints = 2000;
-        const tpPoints = 4000;
+        const priceDistance = riskInDollars / (volume / 100); 
+        const slPoints = Math.floor(priceDistance * 100); // Changed from 100000 to 100 for Gold
+        const tpPoints = slPoints * 2;
 
         console.log(`💰 Live Balance: $${balanceInDollars.toFixed(2)} | Risking $${riskInDollars.toFixed(2)}`);
         console.log(`📏 Setting SL: ${slPoints} pts, TP: ${tpPoints} pts`);
