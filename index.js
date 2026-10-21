@@ -46,17 +46,16 @@ app.get('/dashboard', async (req, res) => {
             `);
         }
 
-        const traderRes = await connection.sendCommand('ProtoOATraderReq', { ctidTraderAccountId: internalAccountId });
-        const reconcileRes = await connection.sendCommand('ProtoOAReconcileReq', { ctidTraderAccountId: internalAccountId });
+        // Set the Go-Live date to today to wipe old manual test trades
+        const botStartDate = new Date('2026-10-21T00:00:00Z').getTime();
 
-        let cleanDeals = [];
         try {
-            const dealRes = await connection.sendCommand('ProtoOADealListReq', {
-                ctidTraderAccountId: internalAccountId,
-                fromTimestamp: Date.now() - (90 * 24 * 60 * 60 * 1000),
-                toTimestamp: Date.now(),
-                maxRows: 1000
-            });
+        const dealRes = await connection.sendCommand('ProtoOADealListReq', {
+         ctidTraderAccountId: internalAccountId,
+         fromTimestamp: botStartDate,
+         toTimestamp: Date.now(),
+          maxRows: 1000
+        });
             const rawDeals = dealRes.deal || [];
             cleanDeals = rawDeals.filter(d => d.closePositionDetail).map(d => ({
                 id: d.dealId,
@@ -381,10 +380,11 @@ app.post('/webhook', async (req, res) => {
             ctidTraderAccountId: internalAccountId,
             symbolId: goldSymbolId,
             orderType: 'MARKET',
-            tradeSide: action, 
+            tradeSide: action,
             volume: volume,
             relativeStopLoss: slPoints,
-            relativeTakeProfit: tpPoints 
+            relativeTakeProfit: tpPoints,
+            label: 'XGBoost-AI'
         });
 
         aiState.message = `Successfully executed ${volume/100}oz order on IC Markets.`;
