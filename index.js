@@ -403,7 +403,7 @@ app.post('/webhook', async (req, res) => {
             relativeStopLoss: slPoints,
             relativeTakeProfit: tpPoints,
             label: 'XGBoost-AI',
-            trailingStop: true
+            trailingStopLoss: true
         });
 
         aiState.message = `Successfully executed ${(volume/100).toFixed(2)}oz order on IC Markets.`;
