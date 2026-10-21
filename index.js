@@ -467,15 +467,11 @@ async function startTradingBot() {
                 if (e.ask) currentAsk = e.ask;
             }
         });
-
-        // NEW: Listen for Broker Successes or Rejections
+        // Listen for ALL Broker Events (Unfiltered)
         connection.on('ProtoOAExecutionEvent', (e) => {
-            if (e.executionType === 'ORDER_REJECTED') {
-                console.error(`❌ BROKER REJECTED ORDER: ${e.errorCode || 'Margin/Volume Error'}`);
-            } else if (e.executionType === 'ORDER_FILLED') {
-                console.log(`✅ TRADE SUCCESSFULLY OPENED!`);
-            }
+            console.log(`📡 RAW BROKER EVENT -> Type: ${e.executionType} | Error Code: ${e.errorCode || 'None'}`);
         });
+        
 
         await connection.sendCommand('ProtoOASubscribeSpotsReq', { 
             ctidTraderAccountId: internalAccountId, 
