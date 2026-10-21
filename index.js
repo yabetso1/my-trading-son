@@ -461,6 +461,21 @@ async function startTradingBot() {
                 if (e.ask) currentAsk = e.ask;
             }
         });
+        connection.on('ProtoOASpotEvent', (e) => {
+            if (e.symbolId === goldSymbolId) {
+                if (e.bid) currentBid = e.bid;
+                if (e.ask) currentAsk = e.ask;
+            }
+        });
+
+        // NEW: Listen for Broker Successes or Rejections
+        connection.on('ProtoOAExecutionEvent', (e) => {
+            if (e.executionType === 'ORDER_REJECTED') {
+                console.error(`❌ BROKER REJECTED ORDER: ${e.errorCode || 'Margin/Volume Error'}`);
+            } else if (e.executionType === 'ORDER_FILLED') {
+                console.log(`✅ TRADE SUCCESSFULLY OPENED!`);
+            }
+        });
 
         await connection.sendCommand('ProtoOASubscribeSpotsReq', { 
             ctidTraderAccountId: internalAccountId, 
