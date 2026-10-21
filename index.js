@@ -414,17 +414,39 @@ app.listen(PORT, async () => {
 });
 
 async function startTradingBot() {
-    connection = new CTraderConnection({ host: apiHost, port: 5035 });
+    console.log(`\nConnecting to cTrader API on host: ${apiHost}...`);
+    
+    connection = new CTraderConnection({ 
+        host: apiHost, 
+        port: 5035 
+    });
+
     try {
         await connection.open();
-        await connection.sendCommand('ProtoOAApplicationAuthReq', { clientId, clientSecret });
-        const accList = await connection.sendCommand('ProtoOAGetAccountListByAccessTokenReq', { accessToken });
+        console.log('✅ TCP Connection established!');
+
+        await connection.sendCommand('ProtoOAApplicationAuthReq', { 
+            clientId, 
+            clientSecret 
+        });
+
+        const accList = await connection.sendCommand('ProtoOAGetAccountListByAccessTokenReq', { 
+            accessToken 
+        });
         internalAccountId = accList.ctidTraderAccount[0].ctidTraderAccountId;
-        await connection.sendCommand('ProtoOAAccountAuthReq', { ctidTraderAccountId: internalAccountId, accessToken });
-        
-        const symbols = await connection.sendCommand('ProtoOASymbolsListReq', { ctidTraderAccountId: internalAccountId });
+
+        await connection.sendCommand('ProtoOAAccountAuthReq', { 
+            ctidTraderAccountId: internalAccountId, 
+            accessToken 
+        });
+        console.log(`✅ Trading Account [${internalAccountId}] Authorized!`);
+
+        const symbols = await connection.sendCommand('ProtoOASymbolsListReq', { 
+            ctidTraderAccountId: internalAccountId 
+        });
         const gold = symbols.symbol.find(s => s.symbolName === 'XAUUSD' || s.symbolName === 'XAU/USD');
         goldSymbolId = gold ? gold.symbolId : null;
+        console.log(`✅ Gold Symbol ID found: ${goldSymbolId}`);
 
         connection.on('ProtoOASpotEvent', (e) => {
             if (e.symbolId === goldSymbolId) {
@@ -432,7 +454,18 @@ async function startTradingBot() {
                 if (e.ask) currentAsk = e.ask;
             }
         });
-        await connection.sendCommand('ProtoOASubscribeSpotsReq', { ctidTraderAccountId: internalAccountId, symbolId: [goldSymbolId] });
-        setInterval(() => { if (connection) connection.sendHeartbeat(); }, 25000);
-    } catch (error) { console.error('Connection Error:', error); }
+
+        await connection.sendCommand('ProtoOASubscribeSpotsReq', { 
+            ctidTraderAccountId: internalAccountId, 
+            symbolId: [goldSymbolId] 
+        });
+        console.log(`✅ Spread Filter Active. Monitoring live market prices.`);
+        console.log(`📡 Dashboard & Webhook Active!`);
+
+        setInterval(() => { 
+            if (connection) connection.sendHeartbeat(); 
+        }, 25000);
+    } catch (error) { 
+        console.error('❌ Connection Error:', error); 
+    }
 }
