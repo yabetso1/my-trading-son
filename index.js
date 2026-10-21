@@ -46,28 +46,41 @@ app.get('/dashboard', async (req, res) => {
             `);
         }
 
-        // Set the Go-Live date to today to wipe old manual test trades
-        const botStartDate = new Date('2026-10-21T00:00:00Z').getTime();
-
-        try {
-        const dealRes = await connection.sendCommand('ProtoOADealListReq', {
-         ctidTraderAccountId: internalAccountId,
-         fromTimestamp: botStartDate,
-         toTimestamp: Date.now(),
-          maxRows: 1000
+        // 1. Fetch live balance (traderRes)
+        const traderRes = await connection.sendCommand('ProtoOATraderReq', {
+            ctidTraderAccountId: internalAccountId,
         });
+
+        // 2. Fetch live positions (reconcileRes)
+        const reconcileRes = await connection.sendCommand('ProtoOAReconcileReq', {
+            ctidTraderAccountId: internalAccountId,
+        });
+
+        // 3. Fetch deal history starting from today
+        let cleanDeals = [];
+        try {
+            const botStartDate = new Date('2026-10-21T00:00:00Z').getTime();
+            const dealRes = await connection.sendCommand('ProtoOADealListReq', {
+                ctidTraderAccountId: internalAccountId,
+                fromTimestamp: botStartDate,
+                toTimestamp: Date.now(),
+                maxRows: 1000
+            });
+
             const rawDeals = dealRes.deal || [];
-            cleanDeals = rawDeals.filter(d => d.closePositionDetail).map(d => ({
-                id: d.dealId,
-                timestamp: Number(d.executionTimestamp || Date.now()),
-                netProfit: ((d.closePositionDetail.netProfit || 0) / 100),
-                tradeSide: d.tradeSide,
-                volume: d.volume
-            })).sort((a, b) => a.timestamp - b.timestamp);
+            cleanDeals = rawDeals
+                .filter(d => d.closePositionDetail)
+                .map(d => ({
+                    id: d.dealId,
+                    timestamp: Number(d.executionTimestamp || Date.now()),
+                    netProfit: ((d.closePositionDetail.netProfit || 0) / 100),
+                    tradeSide: d.tradeSide,
+                    volume: d.volume
+                }))
+                .sort((a, b) => a.timestamp - b.timestamp);
         } catch (e) {
             console.log("Deal query note:", e.message || e);
         }
-
         const balance = (traderRes.trader.balance / 100).toFixed(2);
         const positions = reconcileRes.position || [];
         
