@@ -7,7 +7,7 @@ import yfinance as yf
 import xgboost as xgb
 
 WEBHOOK_URL = "https://my-trading-son.onrender.com/webhook"
-TRADE_VOLUME = 1000 
+TRADE_VOLUME = 100
 
 def run_pipeline():
     print("Fetching historical 15m Gold data...")
