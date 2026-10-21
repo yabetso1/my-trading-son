@@ -397,7 +397,8 @@ app.post('/webhook', async (req, res) => {
             volume: volume,
             relativeStopLoss: slPoints,
             relativeTakeProfit: tpPoints,
-            label: 'XGBoost-AI'
+            label: 'XGBoost-AI',
+            trailingStop: true // Tells the cTrader server to trail the SL automatically
         });
 
         aiState.message = `Successfully executed ${volume/100}oz order on IC Markets.`;
