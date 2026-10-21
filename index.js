@@ -30,6 +30,10 @@ let aiState = {
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
 
+app.get('/ping', (req, res) => {
+    res.status(200).send("OK - Server is awake!");
+});
+
 app.get('/dashboard', async (req, res) => {
     try {
         if (!connection || !internalAccountId) {
