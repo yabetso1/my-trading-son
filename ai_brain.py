@@ -67,12 +67,13 @@ def run_pipeline():
 
     print(f"AI Prediction: {action} (Confidence: {confidence:.1%})")
 
-    # 6. Send the Signal AND the Confidence to Render (Even on HOLD)
+    # 6. Send the Signal AND the Confidence to Render
     payload = {
         "action": action,
         "volume": TRADE_VOLUME,
-        "confidence": round(confidence * 100, 2)  # Converts 0.523 to 52.3 for the dashboard
-    }
+        "confidence": round(float(confidence) * 100, 2)  # Wrapped in float() to fix JSON serialization
+     
+     }
 
     try:
         print(f"Dispatching state to: {WEBHOOK_URL}")
