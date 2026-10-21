@@ -371,6 +371,7 @@ app.post('/webhook', async (req, res) => {
         if (currentAsk > 0 && currentBid > 0) {
             const spreadInPoints = currentAsk - currentBid;
             if (spreadInPoints > 50000) {
+                console.log(`🛑 SPREAD TRIPPED: Spread is ${spreadInPoints} pts. Aborting order.`);
                 aiState.message = 'Signal aborted. Broker spread exceeded safety limits.';
                 return res.status(200).send({ success: true, message: "Spread too high." });
             }
@@ -378,6 +379,7 @@ app.post('/webhook', async (req, res) => {
 
         const reconcileRes = await connection.sendCommand('ProtoOAReconcileReq', { ctidTraderAccountId: internalAccountId });
         if ((reconcileRes.position || []).length >= 2) {
+            console.log(`🛑 EXPOSURE CAP REACHED: 2 active trades already open. Ignoring signal.`);
             aiState.message = 'Signal aborted. Max open positions reached (2/2).';
             return res.status(200).send({ success: true, message: "Max trades reached." });
         }
@@ -389,24 +391,28 @@ app.post('/webhook', async (req, res) => {
         const slPoints = Math.round(priceDistance * 100) * 1000;
         const tpPoints = slPoints * 2;
 
+        console.log(`💰 Live Balance: $${balanceInDollars.toFixed(2)} | Risking $${riskInDollars.toFixed(2)}`);
+        console.log(`📏 Setting SL: ${slPoints} pts, TP: ${tpPoints} pts`);
+
         await connection.sendCommand('ProtoOANewOrderReq', {
             ctidTraderAccountId: internalAccountId,
             symbolId: goldSymbolId,
             orderType: 'MARKET',
-            tradeSide: action,
+            tradeSide: action, 
             volume: volume,
             relativeStopLoss: slPoints,
             relativeTakeProfit: tpPoints,
             label: 'XGBoost-AI',
-            trailingStop: true // Tells the cTrader server to trail the SL automatically
+            trailingStop: true
         });
 
-        aiState.message = `Successfully executed ${volume/100}oz order on IC Markets.`;
+        aiState.message = `Successfully executed ${(volume/100).toFixed(2)}oz order on IC Markets.`;
         res.status(200).send({ success: true, message: "Trade Executed" });
     } catch (error) {
+        console.error('❌ Webhook Execution Failed:', error);
         aiState.message = `Broker execution failed: ${error.message}`;
         res.status(500).send({ success: false, error: error.message });
-    }
+     }
 });
 
 app.listen(PORT, async () => {
