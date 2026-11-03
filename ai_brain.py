@@ -10,15 +10,15 @@ WEBHOOK_URL = "https://my-trading-son.onrender.com/webhook"
 TRADE_VOLUME = 100
 
 def run_pipeline():
-    print("Fetching historical 15m Gold data...")
-    df = yf.download("GC=F", interval="15m", period="60d", auto_adjust=True)
+    print("Fetching historical 5m Gold data...")
+    df = yf.download("GC=F", interval="5m", period="60d", auto_adjust=True)
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.droplevel(1)
     df = df.astype(float)
 
-    df['RSI'] = ta.rsi(df['Close'], length=14)
-    df['EMA_20'] = ta.ema(df['Close'], length=20)
-    df['EMA_50'] = ta.ema(df['Close'], length=50)
+    df['RSI'] = ta.rsi(df['Close'], length=7)
+    df['EMA_20'] = ta.ema(df['Close'], length=9)
+    df['EMA_50'] = ta.ema(df['Close'], length=21)
     df['ATR'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
     df['Next_Close'] = df['Close'].shift(-1)
     df['Target'] = np.where(df['Next_Close'] > df['Close'], 1, 0)
@@ -37,7 +37,7 @@ def run_pipeline():
     model.fit(X_train, y_train)
 
     print("Fetching live market candle...")
-    latest_data = yf.download("GC=F", interval="15m", period="5d", auto_adjust=True)
+    latest_data = yf.download("GC=F", interval="5m", period="5d", auto_adjust=True)
     if isinstance(latest_data.columns, pd.MultiIndex):
         latest_data.columns = latest_data.columns.droplevel(1)
     latest_data = latest_data.astype(float)
