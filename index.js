@@ -386,10 +386,10 @@ app.post('/webhook', async (req, res) => {
 
         const traderRes = await connection.sendCommand('ProtoOATraderReq', { ctidTraderAccountId: internalAccountId });
         const balanceInDollars = traderRes.trader.balance / 100;
-        const riskInDollars = balanceInDollars * 0.10;
+        const riskInDollars = balanceInDollars * 0.01; // 1% Risk for scalping
         const priceDistance = riskInDollars / (volume / 100); 
         const slPoints = Math.round(priceDistance * 100) * 1000;
-        const tpPoints = slPoints * 2;
+        const tpPoints = slPoints * 1.5; // Tighter 1:1.5 Reward Ratio
 
         console.log(`💰 Live Balance: $${balanceInDollars.toFixed(2)} | Risking $${riskInDollars.toFixed(2)}`);
         console.log(`📏 Setting SL: ${slPoints} pts, TP: ${tpPoints} pts`);
