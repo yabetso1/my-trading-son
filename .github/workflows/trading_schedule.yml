@@ -1,8 +1,8 @@
-name: 15 min Gold Trading Engine
+name: 5 min Gold scalp Trading Engine
 
 on:
   schedule:
-    - cron: '15 * * * *'
+    - cron: '5 * * * *'
   workflow_dispatch:
 
 jobs:
